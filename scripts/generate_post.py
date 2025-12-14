@@ -217,14 +217,27 @@ def summarize_items(items: List[Dict[str, str]], model: str) -> List[Tuple[Dict[
                 {"role": "user", "content": build_summary_prompt(it)},
             ]
             try:
-                summary = call_openrouter(model, messages, temperature=TEMPERATURE).strip()
+                summary = call_openrouter_with_backoff(model, messages, temperature=TEMPERATURE).strip()
             except Exception as e:
                 summary = f"(Summary failed: {e})"
             # tiny pacing so you don’t immediately slam into free-tier limits
-            time.sleep(0.3)
+            time.sleep(3.2)
         results.append((it, summary, links))
     return results
 
+def call_openrouter_with_backoff(model: str, messages, temperature: float, max_retries: int = 5) -> str:
+    delay = 3.0
+    for attempt in range(max_retries):
+        try:
+            return call_openrouter(model, messages, temperature=temperature)
+        except requests.HTTPError as e:
+            status = getattr(e.response, "status_code", None)
+            if status == 429:
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
+                continue
+            raise
+    raise RuntimeError("Rate-limited too many times (429).")
 
 # -----------------------------
 # Post generation
