@@ -117,7 +117,7 @@ def arxiv_query(topic: str, start_dt: datetime, end_dt: datetime) -> List[Dict[s
     # We'll fetch recent results and filter by published date ourselves.
     url = "https://export.arxiv.org/api/query"
     params = {
-        "search_query": f'all:"{topic}"',
+        "search_query": f'all:%22{topic}%22',
         "start": 0,
         "max_results": MAX_RESULTS_PER_TOPIC,
         "sortBy": "submittedDate",
