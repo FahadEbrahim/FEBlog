@@ -289,7 +289,12 @@ def main():
         items = arxiv_query(topic, start, today_as_dt(end))
         summarized = summarize_items(items, model)
         all_by_topic[topic] = summarized
-
+    total_papers = sum(len(v) for v in all_by_topic.values())
+    
+    if total_papers == 0:
+        print("No papers found in this interval. Skipping post creation.")
+        return
+    
     write_post(date_str, all_by_topic)
 
 
