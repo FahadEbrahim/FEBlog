@@ -26,6 +26,9 @@ jobs:
       - name: Run generator
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ARXIV_START_DATE: "2025-12-01"
+          ARXIV_END_DATE: "2025-12-14"
+          ARXIV_MAX_RESULTS: "100"
         run: |
           python scripts/generate_post.py
 
