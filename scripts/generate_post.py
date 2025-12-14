@@ -17,6 +17,9 @@ from typing import Dict, List, Any, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 POSTS_DIR = ROOT / "_posts"
 
+ARXIV_START_DATE = os.getenv("ARXIV_START_DATE", "").strip()  # YYYY-MM-DD
+ARXIV_END_DATE = os.getenv("ARXIV_END_DATE", "").strip()      # YYYY-MM-DD
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
@@ -272,12 +275,20 @@ def write_post(date_str: str, topic_groups: Dict[str, List[Tuple[Dict[str, str],
 
 
 def main():
-    # Use UTC to avoid timezone nonsense
     today = datetime.now(timezone.utc).date()
-    start = datetime.combine(today - timedelta(days=DAYS_BACK), datetime.min.time(), tzinfo=timezone.utc)
-    end = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
 
-    date_str = today.isoformat()
+    if ARXIV_START_DATE and ARXIV_END_DATE:
+        start_date = datetime.strptime(ARXIV_START_DATE, "%Y-%m-%d").date()
+        end_date = datetime.strptime(ARXIV_END_DATE, "%Y-%m-%d").date()
+    else:
+        start_date = today - timedelta(days=DAYS_BACK)
+        end_date = today
+
+    start_dt = datetime.combine(start_date, datetime.min.time(), tzinfo=timezone.utc)
+    end_dt = datetime.combine(end_date, datetime.min.time(), tzinfo=timezone.utc)
+
+    # Use end date for post naming
+    date_str = end_date.isoformat()
 
     model = choose_free_model()
     if model:
@@ -286,9 +297,10 @@ def main():
     all_by_topic: Dict[str, List[Tuple[Dict[str, str], str, List[str]]]] = {}
 
     for topic in TOPICS:
-        items = arxiv_query(topic, start, today_as_dt(end))
+        items = arxiv_query(topic, start_dt, end_dt)
         summarized = summarize_items(items, model)
         all_by_topic[topic] = summarized
+    
     total_papers = sum(len(v) for v in all_by_topic.values())
     
     if total_papers == 0:
